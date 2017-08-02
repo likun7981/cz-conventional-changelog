@@ -1,4 +1,4 @@
-"format cjs";
+'format cjs';
 
 var wrap = require('word-wrap');
 var map = require('lodash.map');
@@ -14,12 +14,11 @@ var filter = function(array) {
 // This can be any kind of SystemJS compatible module.
 // We use Commonjs here, but ES6 or AMD would do just
 // fine.
-module.exports = function (options) {
-
+module.exports = function(options) {
   var types = options.types;
 
   var length = longest(Object.keys(types)).length + 1;
-  var choices = map(types, function (type, key) {
+  var choices = map(types, function(type, key) {
     return {
       name: rightPad(key + ':', length) + ' ' + type.description,
       value: key
@@ -39,7 +38,9 @@ module.exports = function (options) {
     // By default, we'll de-indent your commit
     // template and will keep empty lines.
     prompter: function(cz, commit) {
-      console.log('\nLine 1 will be cropped at 100 characters. All other lines will be wrapped after 100 characters.\n');
+      console.log(
+        '\nLine 1 will be cropped at 100 characters. All other lines will be wrapped after 100 characters.\n'
+      );
 
       // Let's ask some questions of the user
       // so that we can populate our commit
@@ -48,65 +49,57 @@ module.exports = function (options) {
       // See inquirer.js docs for specifics.
       // You can also opt to use another input
       // collection library if you prefer.
-      cz.prompt([
-        {
-          type: 'list',
-          name: 'type',
-          message: 'Select the type of change that you\'re committing:',
-          choices: choices
-        }, {
-          type: 'input',
-          name: 'scope',
-          message: 'Denote the scope of this change ($location, $browser, $compile, etc.):\n'
-        }, {
-          type: 'input',
-          name: 'subject',
-          message: 'Write a short, imperative tense description of the change:\n'
-        }, {
-          type: 'input',
-          name: 'body',
-          message: 'Provide a longer description of the change:\n'
-        }, {
-          type: 'input',
-          name: 'breaking',
-          message: 'List any breaking changes:\n'
-        }, {
-          type: 'input',
-          name: 'issues',
-          message: 'List any issues closed by this change:\n'
-        }
-      ]).then(function(answers) {
+      cz
+        .prompt([
+          {
+            type: 'list',
+            name: 'type',
+            message: "Select the type of change that you're committing:",
+            choices: choices
+          },
+          {
+            type: 'input',
+            name: 'subject',
+            message: 'Write a short, imperative tense description of the change:\n',
+            validate: function(input) {
+              if (!input) {
+                return 'Must Write short message.';
+              } else {
+                return true;
+              }
+            }
+          },
+          {
+            type: 'input',
+            name: 'body',
+            message: 'Provide a longer description of the change:\n'
+          },
+          {
+            type: 'input',
+            name: 'issues',
+            message: 'Jira Issue ID(s):\n'
+          }
+        ])
+        .then(function(answers) {
+          var maxLineWidth = 100;
 
-        var maxLineWidth = 100;
+          var wrapOptions = {
+            trim: true,
+            newline: '\n',
+            indent: '',
+            width: maxLineWidth
+          };
 
-        var wrapOptions = {
-          trim: true,
-          newline: '\n',
-          indent:'',
-          width: maxLineWidth
-        };
+          // Hard limit this line
+          var head = (answers.type + ': ' + answers.subject.trim()).slice(0, maxLineWidth);
 
-        // parentheses are only needed when a scope is present
-        var scope = answers.scope.trim();
-        scope = scope ? '(' + answers.scope.trim() + ')' : '';
+          // Wrap these lines at 100 characters
+          var body = wrap(answers.body, wrapOptions);
 
-        // Hard limit this line
-        var head = (answers.type + scope + ': ' + answers.subject.trim()).slice(0, maxLineWidth);
+          var issues = wrap(answers.issues, wrapOptions);
 
-        // Wrap these lines at 100 characters
-        var body = wrap(answers.body, wrapOptions);
-
-        // Apply breaking change prefix, removing it if already present
-        var breaking = answers.breaking.trim();
-        breaking = breaking ? 'BREAKING CHANGE: ' + breaking.replace(/^BREAKING CHANGE: /, '') : '';
-        breaking = wrap(breaking, wrapOptions);
-
-        var issues = wrap(answers.issues, wrapOptions);
-
-        var footer = filter([ breaking, issues ]).join('\n\n');
-
-        commit(head + '\n\n' + body + '\n\n' + footer);
-      });
+          commit(head + '\n\n' + body + '\n\n' + issues);
+        });
     }
   };
 };
