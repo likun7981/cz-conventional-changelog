@@ -1,6 +1,6 @@
 const cz = require('./index')
 
 
-module.exports = cz.withOption({
+module.exports = cz.withOptions({
   withIssue: false,
 })
